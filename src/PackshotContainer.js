@@ -1,6 +1,5 @@
 import React from 'react';
 import PackshotWrapper from './PackshotWrapper';
-import PackshotDragLayer from './PackshotDragLayer';
 import Packshot from './Packshot';
 
 const getNodeClientBounds = (node) => {
@@ -55,9 +54,9 @@ const PackshotContainer = ({
     setActiveMemberId(dragItem.draggedMember.id);
   };
 
-  // Drop Target / useDrop function
+  // useDrop function
   const onMemberMove = (dragItem, hoverId, pointerOffset) => {
-    const { id: dragId } = dragItem.draggedMember;
+    const { id: dragId } = dragItem;
     const hoverIndex = members.findIndex((el) => el.id === hoverId);
     const hoverMember = members[hoverIndex];
 
@@ -84,11 +83,13 @@ const PackshotContainer = ({
     setTargetGroup(groupName);
   };
 
-  // DragSource / UseDrag function
-  const onMemberDragComplete = (dragItem) => {
+  // useDrag function
+  const onMemberDragComplete = ({ dragItem, didDrop }) => {
     setDraggedMemberIds([]);
-    onDragComplete(dragItem);
     setTargetGroup(null);
+    if (didDrop) {
+      onDragComplete(dragItem);
+    }
   };
 
   const onMemberSelectionChange = (memberId, cmdKeyActive, shiftKeyActive) => {
@@ -137,7 +138,6 @@ const PackshotContainer = ({
 
   return (
     <main>
-      <PackshotDragLayer />
       <div className="container" ref={containerRef}>
         {members.map((member, i) => {
           const prevMember = i > 0 ? members[i - 1] : null;

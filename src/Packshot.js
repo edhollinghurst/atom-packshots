@@ -1,110 +1,71 @@
-import React, { Component } from 'react';
-import { compose } from 'redux';
-import { DragSource, DropTarget } from 'react-dnd';
-import { getEmptyImage } from 'react-dnd-html5-backend';
+import React from 'react';
+import { useDrag, useDrop } from 'react-dnd';
 import ItemTypes from './ItemTypes';
 import PackshotContent from './PackshotContent';
 
-const memberSource = {
-  beginDrag(props) {
-    const { id, url, groupName } = props;
-    const draggedMember = { id, url, groupName };
-    let members;
-    if (props.selectedMembers.find((member) => member.id === props.id)) {
-      members = props.selectedMembers;
-    } else {
-      members = [draggedMember];
-    }
-    const otherMembers = members.concat();
-    otherMembers.splice(
-      members.findIndex((c) => c.id === props.id),
-      1
-    );
-    const membersDragStack = [draggedMember, ...otherMembers];
-    return { members, membersDragStack, draggedMember };
-  },
+const Packshot = ({
+  id,
+  url,
+  groupName,
+  selectedMembers,
+  onMove,
+  onDragStart,
+  onDragComplete,
+  onSelectionChange,
+}) => {
+  const [draggedMembers, setDraggedMembers] = React.useState([]);
 
-  endDrag(props, monitor) {
-    props.onDragComplete(monitor.getItem());
-  },
+  const [, drag] = useDrag({
+    item: {
+      type: ItemTypes.PACKSHOT,
+      id,
+    },
+    begin: (monitor) => {
+      let updatedMembers;
+      const draggedMember = { id, url, groupName };
+      if (selectedMembers.find((member) => member.id === id)) {
+        updatedMembers = selectedMembers;
+      } else {
+        updatedMembers = [draggedMember];
+      }
+      setDraggedMembers(updatedMembers);
+      onDragStart({
+        members: updatedMembers,
+        draggedMember: { id, url, groupName },
+      });
+    },
+    end: (item, monitor) => {
+      const didDrop = monitor.didDrop();
+      const dragItem = {
+        draggedMember: { id, url, groupName },
+        members: draggedMembers,
+      };
+      onDragComplete({
+        dragItem,
+        didDrop,
+      });
+    },
+  });
+
+  const [, drop] = useDrop({
+    accept: [ItemTypes.PACKSHOT],
+    hover(item, monitor) {
+      const pointerOffset = monitor.getClientOffset();
+      onMove(item, id, pointerOffset);
+    },
+  });
+
+  const onClick = (e) => {
+    onSelectionChange(id, e.metaKey, e.shiftKey);
+  };
+
+  return (
+    <div ref={drop}>
+      <div ref={drag} className="card" onClick={onClick}>
+        <PackshotContent url={url} />
+      </div>
+    </div>
+  );
 };
 
-const memberTarget = {
-  hover(props, monitor, component) {
-    const item = monitor.getItem();
-    const pointerOffset = monitor.getClientOffset();
-    const hoverId = props.id;
-    props.onMove(item, hoverId, pointerOffset);
-  },
-};
-
-const withDropTarget = DropTarget(
-  ItemTypes.PACKSHOT,
-  memberTarget,
-  (connect) => ({
-    connectDropTarget: connect.dropTarget(),
-  })
-);
-
-const withDragSource = DragSource(
-  ItemTypes.PACKSHOT,
-  memberSource,
-  (connect, monitor) => ({
-    connectDragSource: connect.dragSource(),
-    connectDragPreview: connect.dragPreview(),
-    isDragging: monitor.isDragging(),
-    item: monitor.getItem(),
-  })
-);
-
-class Packshot extends Component {
-  constructor(props) {
-    super(props);
-    this.onClick = this.onClick.bind(this);
-  }
-
-  componentDidMount() {
-    // Use empty image as a drag preview so browsers don't draw it
-    // and we can draw whatever we want on the custom drag layer instead.
-    this.props.connectDragPreview(getEmptyImage(), {
-      // IE fallback: specify that we'd rather screenshot the node
-      // when it already knows it's being dragged so we can hide it with CSS.
-      captureDraggingState: true,
-    });
-  }
-
-  componentWillReceiveProps(nextProps, nextState) {
-    //console.log('componentWillReceiveProps', nextProps);
-    if (!this.props.isDragging && nextProps.isDragging) {
-      this.props.onDragStart(nextProps.item);
-    }
-  }
-
-  onClick(e) {
-    this.props.onSelectionChange(this.props.id, e.metaKey, e.shiftKey);
-  }
-
-  render() {
-    if (this.renderCache) {
-      return this.renderCache;
-    }
-
-    const { url, connectDragSource, connectDropTarget } = this.props;
-
-    this.renderCache = connectDragSource(
-      connectDropTarget(
-        <div
-          ref={(node) => (this.node = node)}
-          className="card"
-          onClick={this.onClick}
-        >
-          <PackshotContent url={url} />
-        </div>
-      )
-    );
-
-    return this.renderCache;
-  }
-}
-
-export default compose(withDropTarget, withDragSource)(Packshot);
+export default Packshot;
