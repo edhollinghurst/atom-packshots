@@ -12,6 +12,7 @@ const Packshot = ({
   onDragStart,
   onDragComplete,
   onSelectionChange,
+  onDropLeave,
 }) => {
   const [draggedMembers, setDraggedMembers] = React.useState([]);
 
@@ -47,13 +48,29 @@ const Packshot = ({
     },
   });
 
-  const [, drop] = useDrop({
+  const [{ isOver, didDrop }, drop] = useDrop({
     accept: [ItemTypes.PACKSHOT],
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+      didDrop: monitor.didDrop(),
+    }),
     hover(item, monitor) {
       const pointerOffset = monitor.getClientOffset();
       onMove(item, id, pointerOffset);
     },
   });
+
+  const useLeave = (callback, isOver, didDrop) => {
+    const ref = React.useRef(isOver);
+    React.useEffect(() => {
+      if (ref.current && !isOver && !didDrop) {
+        callback();
+      }
+      ref.current = isOver;
+    }, [isOver, didDrop]);
+  };
+
+  useLeave(onDropLeave, isOver, didDrop);
 
   const onClick = (e) => {
     onSelectionChange(id, e.metaKey, e.shiftKey);

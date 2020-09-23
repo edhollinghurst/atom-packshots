@@ -83,6 +83,13 @@ const PackshotContainer = ({
     setTargetGroup(groupName);
   };
 
+  const onMemberDropLeave = () => {
+    setInsertIndex(-1);
+    setHoveredMemberId(null);
+    setHoveredMemberIndex(-1);
+    setTargetGroup(null);
+  };
+
   // useDrag function
   const onMemberDragComplete = ({ dragItem, didDrop }) => {
     setDraggedMemberIds([]);
@@ -204,6 +211,7 @@ const PackshotContainer = ({
                   onDragStart={onMemberDragStart}
                   onDragComplete={onMemberDragComplete}
                   onSelectionChange={onMemberSelectionChange}
+                  onDropLeave={onMemberDropLeave}
                 />
               </PackshotWrapper>
               {shouldInsertLineOnRight && <div className="insert-line-right" />}
